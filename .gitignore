@@ -1,10 +1,9 @@
-# Produits de compilation
 bin/
 *.o
 *.d
 *.exe
-*pdf
-# Fichiers d'editeur / systeme
+*.pdf
+
 .vscode/ipch/
 .cache/
 compile_commands.json
