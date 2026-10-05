@@ -3,7 +3,7 @@ bin/
 *.o
 *.d
 *.exe
-
+*pdf
 # Fichiers d'editeur / systeme
 .vscode/ipch/
 .cache/

@@ -16,7 +16,6 @@ void show_memory_map(void)
 {
     char pid_str[16];
     snprintf(pid_str, sizeof pid_str, "%d", getpid());
-    // printf("%d", getpid());
     fflush(stdout);
     pid_t child = fork();
     if (child == -1)
@@ -38,7 +37,9 @@ int main(void)
 {
     const char *str = "Hello world";
     int stack_var = 0;
-    int *ptr = (int *)malloc(sizeof(int));
+    double *ptr = (double *)malloc(sizeof(double));
+
+    printf("###########################################################################\n\r\r\rQuestion 2");
 
     print_segment("Str", str);
     print_segment("Heap", ptr);
@@ -49,5 +50,6 @@ int main(void)
     print_segment("LibC Function", &printf);
     show_memory_map();
     free(ptr);
+    printf("###########################################################################\n\r\r\rQuestion 2");
     return 0;
 }
