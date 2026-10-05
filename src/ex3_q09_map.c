@@ -1,0 +1,169 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define LIST_SIZE 5
+#define APPENDED_VALUE 10
+#define PREPENDED_VALUE -1
+#define OTHER_LIST_SIZE 3
+
+typedef struct Element Element;
+struct Element {
+    int value;
+    Element *next;
+};
+
+typedef struct List List;
+struct List {
+    Element *first;
+};
+
+static Element *element_new(int value, Element *next)
+{
+    Element *element = malloc(sizeof *element);
+    if (element == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    element->value = value;
+    element->next = next;
+    return element;
+}
+
+static List list_create_first_integers(int count)
+{
+    List list = { NULL };
+    for (int value = count - 1; value >= 0; value--)
+        list.first = element_new(value, list.first);
+    return list;
+}
+
+static int list_length(const List *list)
+{
+    int length = 0;
+    for (const Element *element = list->first; element != NULL; element = element->next)
+        length++;
+    return length;
+}
+
+static void list_print(const List *list)
+{
+    for (const Element *element = list->first; element != NULL; element = element->next)
+        printf("<%p> %d\n", (const void *)element, element->value);
+}
+
+static void show_list(const char *title, const List *list)
+{
+    printf("%s (length %d):\n", title, list_length(list));
+    list_print(list);
+}
+
+static void list_remove_first(List *list)
+{
+    Element *removed = list->first;
+    if (removed == NULL)
+        return;
+    list->first = removed->next;
+    free(removed);
+}
+
+static void list_remove_last(List *list)
+{
+    if (list->first == NULL || list->first->next == NULL) {
+        list_remove_first(list);
+        return;
+    }
+    Element *before_last = list->first;
+    while (before_last->next->next != NULL)
+        before_last = before_last->next;
+    free(before_last->next);
+    before_last->next = NULL;
+}
+
+static Element *list_last(const List *list)
+{
+    Element *last = list->first;
+    if (last == NULL)
+        return NULL;
+    while (last->next != NULL)
+        last = last->next;
+    return last;
+}
+
+static void list_append(List *list, int value)
+{
+    Element *element = element_new(value, NULL);
+    Element *last = list_last(list);
+    if (last == NULL)
+        list->first = element;
+    else
+        last->next = element;
+}
+
+static void list_prepend(List *list, int value)
+{
+    list->first = element_new(value, list->first);
+}
+
+static void list_concat(List *destination, List *source)
+{
+    Element *last = list_last(destination);
+    if (last == NULL)
+        destination->first = source->first;
+    else
+        last->next = source->first;
+    source->first = NULL;
+}
+
+static int square(int value)
+{
+    return value * value;
+}
+
+static List list_map(const List *list, int (*transform)(int))
+{
+    List result = { NULL };
+    for (const Element *element = list->first; element != NULL; element = element->next)
+        list_append(&result, transform(element->value));
+    return result;
+}
+
+static void list_free(List *list)
+{
+    Element *element = list->first;
+    while (element != NULL) {
+        Element *next = element->next;
+        free(element);
+        element = next;
+    }
+    list->first = NULL;
+}
+
+int main(void)
+{
+    List list = list_create_first_integers(LIST_SIZE);
+    show_list("Initial list", &list);
+
+    list_remove_first(&list);
+    show_list("After removing the first element", &list);
+
+    list_remove_last(&list);
+    show_list("After removing the last element", &list);
+
+    list_append(&list, APPENDED_VALUE);
+    show_list("After appending a value", &list);
+
+    list_prepend(&list, PREPENDED_VALUE);
+    show_list("After prepending a value", &list);
+
+    List other = list_create_first_integers(OTHER_LIST_SIZE);
+    list_concat(&list, &other);
+    show_list("After concatenating another list", &list);
+    show_list("Other list after concatenation", &other);
+
+    List squares = list_map(&list, square);
+    show_list("Squares", &squares);
+
+    list_free(&list);
+    list_free(&squares);
+    return EXIT_SUCCESS;
+}
