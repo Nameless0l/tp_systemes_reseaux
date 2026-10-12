@@ -31,34 +31,34 @@ int main(){ //Tests sur notre malloc_3is et free_3is
     
     //1ère allocation : INT
     int * number_allocated = malloc_3is(BYTES_FOR_BIRTHYEAR_FADE);
-    *number_allocated = BIRTHYEAR_FADE;
     if(number_allocated == (void *) -1){
         perror("malloc_3is : ");
         exit(EXIT_FAILURE);
     }
+    *number_allocated = BIRTHYEAR_FADE;
     printf("FADE birthyear is %d\r\n",*number_allocated);
     printf("The respective brk addr is : %p\r\n",number_allocated);
 
 
 
     //2nd allocation : CHAR *
-    char ** string_allocated = malloc_3is(BYTES_FOR_NAME_COLLEGUE); 
-    *string_allocated = NAME_COLLEGUE;
+    char ** string_allocated = malloc_3is(BYTES_FOR_NAME_COLLEGUE);
         if(string_allocated == (void *) -1){
         perror("malloc_3is : ");
         exit(EXIT_FAILURE);
     }
+    *string_allocated = NAME_COLLEGUE;
     printf("Collegue's name is %s\r\n",*string_allocated);
     printf("The respective brk addr is : %p\r\n",string_allocated);
 
 
     //3ème allocation : LONG
     long * long_number_allocated = malloc_3is(BYTES_FOR_CURRENT_MONTH);
-    *long_number_allocated = CURRENT_MONTH;
     if(long_number_allocated == (void *) -1){
         perror("malloc_3is : ");
         exit(EXIT_FAILURE);
     }
+    *long_number_allocated = CURRENT_MONTH;
     printf("Current month is %ld\r\n",*long_number_allocated);
     printf("The respective brk addr is : %p\r\n",long_number_allocated);
     //
