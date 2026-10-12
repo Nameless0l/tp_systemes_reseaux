@@ -9,10 +9,12 @@
 #define BYTES_FOR_NAME_COLLEGUE (6 * sizeof(int))
 #define CURRENT_MONTH 12L
 #define BYTES_FOR_CURRENT_MONTH (2 * sizeof(long))
+#define BYTES_FOR_SMALL_BLOCK 40
 #define BYTES_FOR_OVERFLOW_TEST 16
 
 #define MAGIC_NUMBER ((long)0xBADA110CBADA110CL)
 #define ALIGNMENT sizeof(long)
+#define MIN_REMAINING_SIZE ALIGNMENT
 
 typedef struct HEADER_TAG {
     struct HEADER_TAG *ptr_next;
@@ -46,6 +48,16 @@ static void check_magic_numbers(HEADER *block)
     abort();
 }
 
+static HEADER *init_block(void *address, size_t size)
+{
+    HEADER *block = address;
+    block->ptr_next = NULL;
+    block->bloc_size = size;
+    block->magic_number = MAGIC_NUMBER;
+    *trailing_magic(block) = MAGIC_NUMBER;
+    return block;
+}
+
 static HEADER *take_free_block(size_t size)
 {
     HEADER *previous = NULL;
@@ -64,16 +76,26 @@ static HEADER *take_free_block(size_t size)
     return current;
 }
 
+static HEADER *split_free_block(size_t size)
+{
+    size_t needed_size = sizeof(HEADER) + size + sizeof(long);
+    HEADER *block = free_list;
+    while (block != NULL && block->bloc_size < needed_size + MIN_REMAINING_SIZE)
+        block = block->ptr_next;
+    if (block == NULL)
+        return NULL;
+    check_magic_numbers(block);
+    block->bloc_size -= needed_size;
+    *trailing_magic(block) = MAGIC_NUMBER;
+    return init_block(trailing_magic(block) + 1, size);
+}
+
 static HEADER *extend_heap(size_t size)
 {
-    HEADER *header = sbrk((intptr_t)(sizeof(HEADER) + size + sizeof(long)));
-    if (header == (void *)-1)
+    void *address = sbrk((intptr_t)(sizeof(HEADER) + size + sizeof(long)));
+    if (address == (void *)-1)
         return NULL;
-    header->ptr_next = NULL;
-    header->bloc_size = size;
-    header->magic_number = MAGIC_NUMBER;
-    *trailing_magic(header) = MAGIC_NUMBER;
-    return header;
+    return init_block(address, size);
 }
 
 static void insert_in_free_list(HEADER *block)
@@ -115,6 +137,8 @@ void *malloc_3is(size_t size)
 {
     size_t aligned_size = align_size(size);
     HEADER *block = take_free_block(aligned_size);
+    if (block == NULL)
+        block = split_free_block(aligned_size);
     if (block == NULL)
         block = extend_heap(aligned_size);
     if (block == NULL)
@@ -183,6 +207,19 @@ int main(void)
 
     free_3is(string_allocated);
     printf("\nAfter freeing the name\n");
+    print_free_list();
+
+    char *small_block = malloc_3is(BYTES_FOR_SMALL_BLOCK);
+    if (small_block == NULL) {
+        perror("malloc_3is");
+        exit(EXIT_FAILURE);
+    }
+    printf("\n%d bytes cut from the end of the merged block, stored at %p\n",
+           BYTES_FOR_SMALL_BLOCK, (void *)small_block);
+    print_free_list();
+
+    free_3is(small_block);
+    printf("\nAfter freeing the %d bytes\n", BYTES_FOR_SMALL_BLOCK);
     print_free_list();
 
     char *buffer = malloc_3is(BYTES_FOR_OVERFLOW_TEST);
