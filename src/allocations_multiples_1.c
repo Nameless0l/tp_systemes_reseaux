@@ -1,7 +1,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-//#include <system.h>
 #include <stdio.h>
 
 #define BIRTHYEAR_FADE 2004
@@ -10,7 +9,6 @@
 #define BYTES_FOR_NAME_COLLEGUE 6*sizeof(int)
 #define CURRENT_MONTH 12L
 #define BYTES_FOR_CURRENT_MONTH 2*sizeof(long)
-
 
 
 void *malloc_3is(size_t size){
@@ -44,7 +42,7 @@ int main(){ //Tests sur notre malloc_3is et free_3is
 
 
     //2nd allocation : CHAR *
-    char ** string_allocated = malloc_3is(BYTES_FOR_NAME_COLLEGUE);
+    char ** string_allocated = malloc_3is(BYTES_FOR_NAME_COLLEGUE); 
     *string_allocated = NAME_COLLEGUE;
         if(string_allocated == (void *) -1){
         perror("malloc_3is : ");
@@ -63,7 +61,7 @@ int main(){ //Tests sur notre malloc_3is et free_3is
     }
     printf("Current month is %ld\r\n",*long_number_allocated);
     printf("The respective brk addr is : %p\r\n",long_number_allocated);
-
+    //
 
     exit(EXIT_SUCCESS);
 
