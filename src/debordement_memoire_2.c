@@ -1,76 +1,102 @@
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define BIRTHYEAR_FADE 2004
-#define BYTES_FOR_BIRTHYEAR_FADE 4*sizeof(int)
+#define BYTES_FOR_BIRTHYEAR_FADE (4 * sizeof(int))
 #define NAME_COLLEGUE "MBASSI"
-#define BYTES_FOR_NAME_COLLEGUE 6*sizeof(int)
+#define BYTES_FOR_NAME_COLLEGUE (6 * sizeof(int))
 #define CURRENT_MONTH 12L
-#define BYTES_FOR_CURRENT_MONTH 2*sizeof(long)
+#define BYTES_FOR_CURRENT_MONTH (2 * sizeof(long))
 
 typedef struct HEADER_TAG {
-    struct HEADER_TAG * ptr_next; /* pointe sur le prochain bloc libre */
-    size_t bloc_size; /* taille du memory bloc en octets*/
-    long magic_number; /* 0xBADA110CBADA110CL */
+    struct HEADER_TAG *ptr_next;
+    size_t bloc_size;
+    long magic_number;
 } HEADER;
 
+static HEADER *free_list = NULL;
 
-void *malloc_3is(size_t size){
-    return sbrk(size); //L'erreur sera gérée dans le main
+void *malloc_3is(size_t size)
+{
+    HEADER *header = sbrk((intptr_t)(sizeof(HEADER) + size + sizeof(magic_number)));
+    if (header == (void *)-1)
+        return NULL;
+    header->ptr_next = NULL;
+    header->bloc_size = size;
+    return header + 1;
 }
 
-//void free_3is(void *_Nullable p){}
+void free_3is(void *pointer)
+{
+    if (pointer == NULL)
+        return;
+    HEADER *block = (HEADER *)pointer - 1;
+    HEADER *previous = NULL;
+    HEADER *current = free_list;
+    while (current != NULL && current < block) {
+        previous = current;
+        current = current->ptr_next;
+    }
+    block->ptr_next = current;
+    if (previous == NULL)
+        free_list = block;
+    else
+        previous->ptr_next = block;
+}
 
+static void print_free_list(void)
+{
+    printf("Free list:");
+    if (free_list == NULL)
+        printf(" empty");
+    for (HEADER *block = free_list; block != NULL; block = block->ptr_next)
+        printf(" [%p, %zu bytes]", (void *)(block + 1), block->bloc_size);
+    printf("\n");
+}
 
+int main(void)
+{
+    printf("Our starting pointer is at: %p\n", sbrk(0));
 
-int main(){ //Tests sur notre malloc_3is et free_3is
-    //On doit en premier lieu récupérer l'adresse du heap initialisé du process
-    //se qui se fait par appeler srbk(0)
-    void * allocated_memory_start_ptr = sbrk(0);
-    if(allocated_memory_start_ptr == (void *) -1){
-        perror("srbk(0) : ");
+    int *number_allocated = malloc_3is(BYTES_FOR_BIRTHYEAR_FADE);
+    if (number_allocated == NULL) {
+        perror("malloc_3is");
         exit(EXIT_FAILURE);
     }
-    printf("Our starting pointer is at : %p\r\n",allocated_memory_start_ptr);
-    
-    //1ère allocation : INT
-    int * number_allocated = malloc_3is(BYTES_FOR_BIRTHYEAR_FADE);
     *number_allocated = BIRTHYEAR_FADE;
-    if(number_allocated == (void *) -1){
-        perror("malloc_3is : ");
+    printf("FADE birthyear is %d, stored at %p\n", *number_allocated, (void *)number_allocated);
+
+    char **string_allocated = malloc_3is(BYTES_FOR_NAME_COLLEGUE);
+    if (string_allocated == NULL) {
+        perror("malloc_3is");
         exit(EXIT_FAILURE);
     }
-    printf("FADE birthyear is %d\r\n",*number_allocated);
-    printf("The respective brk addr is : %p\r\n",number_allocated);
-
-
-
-    //2nd allocation : CHAR *
-    char ** string_allocated = malloc_3is(BYTES_FOR_NAME_COLLEGUE); 
     *string_allocated = NAME_COLLEGUE;
-        if(string_allocated == (void *) -1){
-        perror("malloc_3is : ");
+    printf("Colleague's name is %s, stored at %p\n", *string_allocated, (void *)string_allocated);
+
+    long *long_number_allocated = malloc_3is(BYTES_FOR_CURRENT_MONTH);
+    if (long_number_allocated == NULL) {
+        perror("malloc_3is");
         exit(EXIT_FAILURE);
     }
-    printf("Collegue's name is %s\r\n",*string_allocated);
-    printf("The respective brk addr is : %p\r\n",string_allocated);
-
-
-    //3ème allocation : LONG
-    long * long_number_allocated = malloc_3is(BYTES_FOR_CURRENT_MONTH);
     *long_number_allocated = CURRENT_MONTH;
-    if(long_number_allocated == (void *) -1){
-        perror("malloc_3is : ");
-        exit(EXIT_FAILURE);
-    }
-    printf("Current month is %ld\r\n",*long_number_allocated);
-    printf("The respective brk addr is : %p\r\n",long_number_allocated);
-    //
+    printf("Current month is %ld, stored at %p\n", *long_number_allocated, (void *)long_number_allocated);
+
+    print_free_list();
+
+    free_3is(string_allocated);
+    printf("\nAfter freeing the name\n");
+    print_free_list();
+
+    free_3is(number_allocated);
+    printf("\nAfter freeing the birthyear\n");
+    print_free_list();
+
+    free_3is(long_number_allocated);
+    printf("\nAfter freeing the month\n");
+    print_free_list();
 
     exit(EXIT_SUCCESS);
-
-
 }
-
