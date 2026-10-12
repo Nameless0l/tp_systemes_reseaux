@@ -9,6 +9,10 @@
 #define BYTES_FOR_NAME_COLLEGUE (6 * sizeof(int))
 #define CURRENT_MONTH 12L
 #define BYTES_FOR_CURRENT_MONTH (2 * sizeof(long))
+#define BYTES_FOR_OVERFLOW_TEST 16
+
+#define MAGIC_NUMBER ((long)0xBADA110CBADA110CL)
+#define ALIGNMENT sizeof(long)
 
 typedef struct HEADER_TAG {
     struct HEADER_TAG *ptr_next;
@@ -18,13 +22,35 @@ typedef struct HEADER_TAG {
 
 static HEADER *free_list = NULL;
 
+static size_t align_size(size_t size)
+{
+    return (size + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT;
+}
+
+static long *trailing_magic(HEADER *header)
+{
+    return (long *)((char *)(header + 1) + header->bloc_size);
+}
+
+static void check_magic_numbers(HEADER *block)
+{
+    if (block->magic_number == MAGIC_NUMBER && *trailing_magic(block) == MAGIC_NUMBER)
+        return;
+    fflush(stdout);
+    fprintf(stderr, "Memory overflow detected on block %p\n", (void *)(block + 1));
+    abort();
+}
+
 void *malloc_3is(size_t size)
 {
-    HEADER *header = sbrk((intptr_t)(sizeof(HEADER) + size + sizeof(magic_number)));
+    size_t aligned_size = align_size(size);
+    HEADER *header = sbrk((intptr_t)(sizeof(HEADER) + aligned_size + sizeof(long)));
     if (header == (void *)-1)
         return NULL;
     header->ptr_next = NULL;
-    header->bloc_size = size;
+    header->bloc_size = aligned_size;
+    header->magic_number = MAGIC_NUMBER;
+    *trailing_magic(header) = MAGIC_NUMBER;
     return header + 1;
 }
 
@@ -33,6 +59,7 @@ void free_3is(void *pointer)
     if (pointer == NULL)
         return;
     HEADER *block = (HEADER *)pointer - 1;
+    check_magic_numbers(block);
     HEADER *previous = NULL;
     HEADER *current = free_list;
     while (current != NULL && current < block) {
@@ -98,5 +125,16 @@ int main(void)
     printf("\nAfter freeing the month\n");
     print_free_list();
 
-    exit(EXIT_SUCCESS);
+    char *buffer = malloc_3is(BYTES_FOR_OVERFLOW_TEST);
+    if (buffer == NULL) {
+        perror("malloc_3is");
+        exit(EXIT_FAILURE);
+    }
+    printf("\nWriting %d bytes into a %d-byte block at %p\n",
+           BYTES_FOR_OVERFLOW_TEST + 1, BYTES_FOR_OVERFLOW_TEST, (void *)buffer);
+    for (int i = 0; i <= BYTES_FOR_OVERFLOW_TEST; i++)
+        buffer[i] = 'A';
+    free_3is(buffer);
+
+    return EXIT_SUCCESS;
 }
