@@ -175,6 +175,8 @@ static void print_free_list(void)
 int main(void)
 {
     printf("Our starting pointer is at: %p\n", sbrk(0));
+    printf("main has not called malloc yet, but printf already got its buffer from our malloc\n");
+    print_free_list();
 
     int *number_allocated = malloc(BYTES_FOR_BIRTHYEAR_FADE);
     if (number_allocated == NULL) {
