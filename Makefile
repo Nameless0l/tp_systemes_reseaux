@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -std=gnu11 -Wall -Wextra -g
+CFLAGS = -std=gnu11 -Wall -Wextra -g -Iincludes $(shell pkg-config fuse --cflags)
+LDLIBS = $(shell pkg-config fuse --libs)
 
 SOURCES = $(wildcard src/*.c)
 PROGRAMS = $(patsubst src/%.c,bin/%,$(SOURCES))
@@ -8,9 +9,9 @@ PROGRAMS = $(patsubst src/%.c,bin/%,$(SOURCES))
 
 all: $(PROGRAMS)
 
-bin/%: src/%.c
+bin/%: src/%.c $(wildcard includes/*.h)
 	@mkdir -p bin
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@ $(LDLIBS)
 
 clean:
 	rm -rf bin
