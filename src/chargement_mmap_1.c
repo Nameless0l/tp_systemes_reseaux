@@ -58,9 +58,15 @@ static void print_directory(char *image, const struct tosfs_inode *directory)
             printf("  %.*s (inode %u)\n", TOSFS_MAX_NAME_LENGTH, entries[i].name, entries[i].inode);
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    int fd = open(IMAGE_PATH, O_RDWR);
+    if (argc != 2)
+    {
+        fprintf(stderr, "Usage: %s <image>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    int fd = open(argv[1], O_RDWR);
     if (fd < 0)
         exit_with_error("open");
 
