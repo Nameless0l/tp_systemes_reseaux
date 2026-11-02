@@ -3,7 +3,6 @@ bin/
 *.d
 *.exe
 *.pdf
-data/futosfs.img
 
 .vscode/ipch/
 .cache/
